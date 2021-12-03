@@ -27,7 +27,7 @@ public class Tile {
 
 
     private boolean combineAnimation = false;
-    private double scaleCombine = 1.2;
+    private double scaleCombine = 1.3;
     private BufferedImage combineImage;
     private boolean canCombine = true;
 
@@ -141,14 +141,14 @@ public class Tile {
             AffineTransform transform = new AffineTransform();
             transform.translate(WIDTH / 2 - scaleCombine * WIDTH / 2, HEIGHT / 2 - scaleCombine * HEIGHT / 2);
             transform.scale(scaleCombine, scaleCombine);
-            Graphics2D g2d = (Graphics2D) beginningImage.getGraphics();
+            Graphics2D g2d = (Graphics2D) combineImage.getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g2d.setColor(new Color(0,0,0,0));
             g2d.fillRect(0,0,WIDTH,HEIGHT);
             g2d.drawImage(tileImage,transform,null);
-            scaleCombine -= 0.1;
+            scaleCombine -= 0.05;
             g2d.dispose();
-            if(scaleFirst <=1)combineAnimation = false;
+            if(scaleCombine <= 1)combineAnimation = false;
         }
     }
     public void render (Graphics2D g)
@@ -205,6 +205,7 @@ public class Tile {
     }
     public void setCombineAnimation(boolean combineAnimation){
         this.combineAnimation = combineAnimation;
+        if(combineAnimation) scaleCombine = 1.2;
     }
 
 }

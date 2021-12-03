@@ -3,6 +3,7 @@ package com.vovavika.game;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.*;
 import java.util.Random;
 
 public class GameBoard {
@@ -18,6 +19,10 @@ public class GameBoard {
     private BufferedImage finalBoard;
     private int x;
     private int y;
+    private int score = 0;
+    private int highScore = 0;
+    private Font scoreFont;
+
 
     private static int SPACING = 10;
     public static int BOARD_WIDTH = (COLS + 1) * SPACING + COLS * Tile.WIDTH;
@@ -25,17 +30,76 @@ public class GameBoard {
 
     private boolean hasStarted;
 
+    // Saving
+    private String saveDataPath;
+    private  String filename = "SaveData";
+
+
     public GameBoard (int x, int y)
     {
+        try {
+        saveDataPath = GameBoard.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+  /*      saveDataPath = System.getProperty("user.home") + "\\foldername";*/
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        scoreFont = Game.main.deriveFont(24f);
         this.x = x;
         this.y = y;
         board = new Tile[ROWS][COLS];
         gameBoard = new BufferedImage(BOARD_WIDTH,BOARD_HEIGHT,BufferedImage.TYPE_INT_RGB);
         finalBoard = new BufferedImage(BOARD_WIDTH,BOARD_HEIGHT,BufferedImage.TYPE_INT_RGB);
 
+        loadHighScore();
         createBoardImage();
         start();
     }
+private void createSaveData(){
+        try {
+            File file = new File(saveDataPath,filename);
+
+            FileWriter output = new FileWriter(file);
+            BufferedWriter writer = new BufferedWriter(output);
+            writer.write(""+ 0);
+            writer.close();
+
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+}
+private void  loadHighScore(){
+    try {
+        File f  = new File(saveDataPath,filename);
+        if(!f.isFile()){
+            createSaveData();
+        }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+        highScore  = Integer.parseInt(reader.readLine());
+        reader.close();
+    }
+    catch (Exception e){
+        e.printStackTrace();
+    }
+}
+private void setHighScore(){
+    FileWriter output = null;
+
+    try {
+        File f  = new File(saveDataPath,filename);
+        output = new FileWriter(f);
+        BufferedWriter writer = new BufferedWriter(output);
+
+
+        writer.write("" + highScore);
+        writer.close();
+    }
+    catch (Exception e){
+        e.printStackTrace();
+    }
+}
 private void createBoardImage()
 {
     Graphics2D g = (Graphics2D) gameBoard.getGraphics();
@@ -108,10 +172,19 @@ public void render(Graphics2D g)
 
     g.drawImage(finalBoard,x,y,null);
     g2d.dispose();
+    g.setColor(Color.lightGray);
+    g.setFont(scoreFont);
+    g.drawString("Сейчас: " + score, 30, 40);
+    g.drawString("",30,40);
+    g.setColor(Color.red);
+    g.drawString("Лучший: " + highScore , Game.WIDTH - DrawUtils.getMessageWidth("Best: " + highScore, scoreFont, g) - 120, 40 );
 }
 public void update()
 {
     checkKeys();
+    if(score >= highScore){
+        highScore = score;
+    }
 
     for(int row = 0; row < ROWS; row++)
     {
@@ -187,7 +260,7 @@ private  boolean move (int row,  int col, int horizontalDirection, int verticalD
             board[newRow - verticalDirection][newCol - horizontalDirection] = null;
             board [newRow][newCol].setSlideTo(new Point(newRow, newCol));
             board[newRow][newCol].setCombineAnimation(true);
-            // add to score
+            score += board[newRow][newCol].getValue();
         }
         else {
             move = false;
@@ -321,7 +394,7 @@ private void checkDead()
         }
     }
     dead = true;
-    // setHighscore(score);
+    setHighScore();
 }
 private boolean checkSurroundingTiles(int row, int col, Tile current)
 {

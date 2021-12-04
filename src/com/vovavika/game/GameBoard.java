@@ -28,7 +28,11 @@ public class GameBoard {
     public static int BOARD_WIDTH = (COLS + 1) * SPACING + COLS * Tile.WIDTH;
     public static int BOARD_HEIGHT = (COLS + 1) * SPACING + ROWS * Tile.HEIGHT;
 
+    private long elapsedMS;
+    private  long fastestMS;
+    private long startTime;
     private boolean hasStarted;
+    private String formattedTime = "00:00:000";
 
     // Saving
     private String saveDataPath;
@@ -51,6 +55,7 @@ public class GameBoard {
         board = new Tile[ROWS][COLS];
         gameBoard = new BufferedImage(BOARD_WIDTH,BOARD_HEIGHT,BufferedImage.TYPE_INT_RGB);
         finalBoard = new BufferedImage(BOARD_WIDTH,BOARD_HEIGHT,BufferedImage.TYPE_INT_RGB);
+        startTime = System.nanoTime();
 
         loadHighScore();
         createBoardImage();
@@ -63,6 +68,8 @@ private void createSaveData(){
             FileWriter output = new FileWriter(file);
             BufferedWriter writer = new BufferedWriter(output);
             writer.write(""+ 0);
+            writer.newLine();
+            writer.write("" + Integer.MAX_VALUE);
             writer.close();
 
         }
@@ -78,6 +85,7 @@ private void  loadHighScore(){
         }
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
         highScore  = Integer.parseInt(reader.readLine());
+        fastestMS = Long.parseLong(reader.readLine());
         reader.close();
     }
     catch (Exception e){
@@ -94,6 +102,13 @@ private void setHighScore(){
 
 
         writer.write("" + highScore);
+        writer.newLine();
+        if(elapsedMS <= fastestMS && won){
+            writer.write("" + elapsedMS);
+        }
+        else {
+            writer.write("" + fastestMS);
+        }
         writer.close();
     }
     catch (Exception e){
@@ -178,9 +193,22 @@ public void render(Graphics2D g)
     g.drawString("",30,40);
     g.setColor(Color.red);
     g.drawString("Лучший: " + highScore , Game.WIDTH - DrawUtils.getMessageWidth("Best: " + highScore, scoreFont, g) - 120, 40 );
+    g.setColor(Color.black);
+    g.drawString("Время: " + formattedTime, 30, 90);
+    g.setColor(Color.red);
+    g.drawString("Лучшее время: " + formattedTime, Game.WIDTH - DrawUtils.getMessageWidth("Best: " + formattedTime, scoreFont, g) - 120, 120);
 }
 public void update()
 {
+    if(!won && !dead){
+        if(hasStarted){
+            elapsedMS = (System.nanoTime() - startTime) / 1000000;
+            formattedTime = formatTime(elapsedMS);
+        }
+        else{
+            startTime = System.nanoTime();
+        }
+    }
     checkKeys();
     if(score >= highScore){
         highScore = score;
@@ -201,6 +229,62 @@ public void update()
     }
 }
 
+public String formatTime(long millis) {
+    String formattedTime;
+    String hourFormat = "";
+    int hours = (int) (millis / 3600000);
+    if (hours >= 1) {
+        millis -= hours * 3600000;
+        if (hours < 10) {
+            hourFormat = "0" + hours;
+        } else {
+            hourFormat = "" + hours;
+        }
+        hourFormat += ":";
+    }
+
+    String minuteFormat;
+    int minutes = (int)(millis / 60000);
+    if(minutes >= 1){
+        millis -= minutes * 60000;
+        if(minutes < 10){
+            minuteFormat = "0" + minutes;
+        }
+        else{
+            minuteFormat = "" + minutes;
+        }
+    }
+    else{
+        minuteFormat = "00";
+    }
+    String secondFormat;
+    int seconds = (int)(millis / 1000);
+    if(seconds >= 1){
+        millis -= seconds * 1000;
+        if(seconds < 10){
+            secondFormat = "0" + seconds;
+        }
+        else{
+            secondFormat = "" + seconds;
+        }
+    }
+    else{
+        secondFormat = "00";
+    }
+
+    String milliFormat;
+    if(millis > 99){
+        milliFormat = "" + millis;
+    }
+    else if(millis > 9){
+        milliFormat = "0" + millis;
+    }
+    else {
+        milliFormat = "00" + millis;
+    }
+    formattedTime = hourFormat + minuteFormat + ":" + secondFormat + ":" + milliFormat;
+    return formattedTime;
+}
 private  void resetPosition(Tile current, int row, int col){
         if(current == null)return;
 
@@ -394,6 +478,7 @@ private void checkDead()
         }
     }
     dead = true;
+    if(score >= highScore) highScore = score;
     setHighScore();
 }
 private boolean checkSurroundingTiles(int row, int col, Tile current)
